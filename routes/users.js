@@ -3,7 +3,7 @@ const router = express.Router();
 
 const { v4: uuidv4 } = require("uuid");
 const mysql = require("mysql");
-const pool = mysql.createPool({
+const pool = mysql.createPool({ //creazione pool di connessioni
   connectionLimint: 10,
   host: "localhost",
   user: "root",
@@ -11,28 +11,31 @@ const pool = mysql.createPool({
   database: "database",
 });
 
-const jwt = require("jsonwebtoken");        				
+//libreria per la trasmissione delle informazioni tramite json (RFC 7519)
+const jwt = require("jsonwebtoken");   
+//genera webtoken segreto da archiviare in un file .env     				
+//require('crypto').randomBytes(64).toString('hex');
 
-const dotenv = require("dotenv");   
+const dotenv = require("dotenv");   //libreria per caricare le variabili d'ambiente dai file .env
 // get config vars
 dotenv.config();
-// access config var
-process.env.TOKEN_SECRET;   								
+// access config var (token segreto)
+process.env.TOKEN_SECRET;   							
+
 //var privateKey = fs.readFileSync('private.key');
 
 
-function generateAccessToken(firstName) {
-  return jwt.sign(firstName,process.env.TOKEN_SECRET, { expiresIn: "1800s" }); // secret
+function generateAccessToken(firstName) { //genera un webtoken valido per 30 min
+  return jwt.sign(firstName,process.env.TOKEN_SECRET, { expiresIn: "1800s" }); 
 }
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
-  if (token == null) return res.sendStatus(401);
+  if (token == null) return res.sendStatus(401); //Unauthorized
 
   jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
-    //secret
     console.log(err);
 
     if (err) return res.sendStatus(403); //forbidden
@@ -41,7 +44,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-//login e token
+//login e creazione del webtoken
 router.get("/login", (req, res) => {
   console.log(req.body.firstName);   
 
@@ -55,11 +58,10 @@ router.get("/login", (req, res) => {
     (err, row) => {
       if (err) {				// Controlla se c'è un errore nel DB
         res.status(500).send(err);
-        throw err;					// ! attenzione, questo blocca il server se c'è un errore nella query, spesso non serve
+        throw err;					// blocca il server se c'è un errore nella query
       }
       if (row.length > 0) {			// Controlla se esiste un utente con quei requisiti
-        //se la password è corretta
-
+      //se la password è corretta
         const token = generateAccessToken({ firstName: row.id });
         res.status(201).json({
           success: 1,
@@ -69,7 +71,7 @@ router.get("/login", (req, res) => {
       } else {			// altrimenti gli dice di no
         res.status(403).json({
           success: 0,
-          message: "Username or password not correct",
+          message: "Username o password errati",
         });
       }
     }
@@ -91,7 +93,7 @@ router.get("/login", (req, res) => {
     */
 });
 
-//.get per le incoming request
+//richiesta di autenticazione per visualizzare il contenuto del db
 router.get("/getData/testAuth", authenticateToken, (req, res) => {
   pool.query(
     `\
@@ -119,7 +121,7 @@ router.post("/", (req, res) => {
 
       console.log(`POST: ${req.url} \tremote:${req.ip}: `);
       if (err) {
-        res.status(500).send(err);
+        res.status(500).send(err);  //Internal Server Error
 				console.log(err)
         throw err;
       }  
@@ -140,7 +142,7 @@ router.post("/", (req, res) => {
  
 });
 
-//.get per estrarre l'id
+//.get per estrarre i dati dell'utente tramite ID
 router.get("/cerca/:id", (req, res) => {  
   var id = req.params.id;
   pool.query(
@@ -165,10 +167,9 @@ router.get("/cerca/:id", (req, res) => {
   );
 });
 
-//delete requests
+//delete requests - elimina utente tramite ID
 router.delete("/delete/:id", (req, res) => {               
-  //authenticateToken,
-
+  
   let id = req.params.id;
   pool.query(`DELETE FROM users WHERE id=?`, [id], (err, row, fie) => {
     console.log(`POST: ${req.url} \tremote:${req.ip}: `);
@@ -176,8 +177,10 @@ router.delete("/delete/:id", (req, res) => {
       res.status(500).send(err);
       throw err;
     }
-    if(row.affectedRows>0) {res.send(`user eliminato dal database`);} 
-    else {res.send(`user non trovato`);}
+    //se sono stati modificati dei record allora l'utente è stato eliminato
+    if(row.affectedRows>0) {res.send(`utente eliminato dal database`);} 
+    //altrimenti:
+    else {res.send(`utente non trovato`);}
     console.log(row);
   });
 });
