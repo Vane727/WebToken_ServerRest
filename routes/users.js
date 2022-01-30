@@ -185,43 +185,7 @@ router.delete("/delete/:id", (req, res) => {
   });
 });
 
-//patch requests
-router.patch("/:id", (req, res) => {
-  //  authenticateToken,
 
-  var post = [req.body.firstName, req.body.lastName, req.body.password];
-  var id = req.params.id;
-  pool.query(
-    "UPDATE users SET firstName=?,lastName=?,password=? WHERE id=?",  
-    [req.body.firstName, req.body.lastName, req.body.password,id],
-    (err, row, fie) => {
-      console.log(`POST: ${req.url} \tremote:${req.ip}: `);
-      if (err) {
-        res.status(500).send(err);
-        throw err;
-      }
-
-      res.send(row);
-      //res.send(row.map(r=>r.id));
-      console.log("changed " + row.changedRows + " rows");
-      res.send({
-        message: `user aggiornato:` + row.firstName,
-      });
-    }
-  );
-
-  /*
-    const {id}=req.params; 
-    const {firstName,lastName}=req.body;
-
-    const user =users.find((user)=>user.id==id);
-   if(firstName){user.firstName=firstName};
-   if(lastName){user.lastName=lastName};
-  // if(id){}
-
-  res.send(`user ${users.id} aggiornato `);
-  */
-});
 
 //vengono esportate le route create in modo che possano essere importate in altri file
 module.exports = router;
